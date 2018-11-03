@@ -4,162 +4,150 @@ Created on Thu Nov  1 16:33:26 2018
 
 @author: Somesh Gupta
 """
-import sys, os
+import sys
 from operator import itemgetter
 
-def read_data(fname, fields):
-    """
-    Reads data from file fname. Keeps only the columns specified in the
-    fields list and also accumulates data . Assumes data in the columns is numeric. 
-    
-    Arguments:
-        fname: the file name to be used. Can be absolute or relative
-        fields: list of column names to be 
-    """
-def extract_word(words, offset):
-    #clean comment --- extracts the word at offset, cleans it and
-    #returns upper case"
-    return words[offset].strip().replace("\"","").replace("\'","").upper()
+STATUS = ["CASE_STATUS", "STATUS", "APPROVAL_STATUS"]
+STATE = ["LCA_CASE_WORKLOC1_STATE", "WORKSITE_STATE","STATE_1"]
+SOC_NAME = ["LCA_CASE_SOC_NAME","SOC_NAME", "OCCUPATION_TITLE"]
 
-def count_applications(inf, cols):
+COLUMN_DEFS = {"status":STATUS, "state":STATE, "soc_name":SOC_NAME}
+
+KEY_NAME = "status"
+KEY_VALUE = "CERTIFIED"
+
+OUT_STRINGS = {"state":"TOP_STATES;NUMBER_CERTIFIED_APPLICATIONS;PERCENTAGE\n",\
+               "soc_name":"TOP_OCCUPATIONS;NUMBER_CERTIFIED_APPLICATIONS;PERCENTAGE\n"}
+OUT_COUNT = 10
+
+def extract_word(words, index):
+    # extract the word from list at the specified index.
+    # clean it as needed
+    return words[index].strip().replace("\"","").replace("\'","").upper()
+
+def count_filings(inf, cols, match_name, match_val):
+    # for every line in inf file, if the value in match_name column
+    # equals the match value, then the columns specified by
+    # the col struct are used to do counting as follows:
+    #      extract the value in the column - it is an instance of values
+    #      for the column. Count the number of each instance in the file
+    #      and store them in the dictionary result. Result is a dictionary
+    #      of dictionary. At outer level, the key is column name, at inner
+    #      level, the key is instance of column value and value is number of
+    #      occurances
     
-    states = {}
-    occs = {}  
-    occnames = {}
+    result = {}
+    col_name = []
+    col_index = []
     
-    state_col = cols['state']
-    occ_col = cols['occ_code']
-    status_col = cols['status']
-    occ_name_col = cols['occ_name']
+    # prepare two parallel lists - column name and column index
+    # to avoid dictionary lookup for column index in per file line loop
+    for c in cols:
+        print(c)
+        if c != match_name:
+            col_name.append(c)
+            col_index.append(cols[c])
+            result[c] = {}
+        else:
+            match_col = cols[c]
+            
     total = 0
-    for line in inf:
-        #print(line)
-        words = line.strip().split(';')
-        status = extract_word(words, status_col)
-        state = extract_word(words, state_col)
-        occ_code = extract_word(words, occ_col)
-        occ_name = extract_word(words, occ_name_col)
-        if status == 'CERTIFIED':
-            total += 1
-            states[state] = states.get(state, 0) + 1
-            if occ_code not in occs:
-                occnames[occ_code] = occ_name
-                count = 1
-            else:
-                count = 1 + occs[occ_code]
-            occs[occ_code] = count
     
-    return states, occs, occnames, total
+    for line in inf:
+        words = line.strip().split(';')
+        if match_val == extract_word(words, match_col):
+            total += 1
+            for i, n in enumerate(col_index):
+                s = extract_word(words, n)
+                k = col_name[i]
+                result[k][s] = result[k].get(s, 0) + 1    
+    return result, total
 
-def main():
 
+def match_col_name(word, pat):
+    # checks if any of alternative names for a column has a match
+    for s in pat:
+        if s == word:
+            return True
+    return False
 
-    """    
-    s = f.readline()
-    i = int(s.strip())
-except OSError as err:
-    print("OS error: {0}".format(err))
-except ValueError:
-    print("Could not convert data to an integer.")
-except:
-    print("Unexpected error:", sys.exc_info()[0])
-    raise
-    """
-    print(os.getcwd())
-    if len(sys.argv) != 4:
-        print("h1bcounting.py: requires exactly 3 arguments")
-        print("usage is h1bcounting.py <input_file> <outfile_occupations> <outfile_states>")
+def find_col_indices(words, cols, column_defs):
+    # searches for column names in the list of words - common name is
+    # in dict cols, the acceptable strings for a column name are in
+    # column_defs. Returns the indices at which the names occur in cols
+    for i, word in enumerate(words):
+        word = word.upper()
+        for key in cols:
+            if (cols[key] == -1):
+                if (match_col_name(word,column_defs[key]) == True):
+                    cols[key] = i
+                    break
+    for t, v in cols.items():
+        if (v == -1):
+            print("could not find column for "+ t)
+            return False
+    return True
+
+def sort_by_value_and_key(indict):
+    # first sort by value in descending order and then by key in
+    # ascending order. Returns a list of tuples of key-values in sorted order
+    l = [(key, val) for key, val in indict.items()]
+    l.sort(key = itemgetter(0))
+    l.sort(key=itemgetter(1), reverse=True)
+    return l
+
+def get_top_filings():
+    num_out_files = len(COLUMN_DEFS) -1   
+    
+    if len(sys.argv) != num_out_files+2:
+        print("h1bcounting.py: requires exactly {} arguments".format(num_out_files+2))
+        print("usage is h1bcounting.py <input_file> <outfile> ...")
         return
 
     try:
         i = 1
         inf = open(sys.argv[i], "r")
-        i += 1
-        foccs = open(sys.argv[i], "w")
-        i += 1
-        fstates = open(sys.argv[i], "w")
     except IOError as err:
         print("File open error: {}".format(err))
         return
-    STATUS1 = "approval_status"
-    STATUS2 = "case_status"
-    STATE1 = "1_state"
-    STATE2 = "state_1"
-    STATE3 = "worksite_state"
-    CODE1 = "occ"
-    CODE2 = "soc"
-    CODE3 = "code"
-    NAME1 = "name"
-    # Locate the columns to use
-    cols = {'status':-1, 'state':-1, 'occ_code':-1, 'occ_name':-1}
 
+    # create a dictionary with the required column names as keys
+    # initialized to a value of 1
+    cols = {}
+    for c in COLUMN_DEFS:
+        cols[c] = -1
+
+    # skip any blank lines at top
     for line in inf:
         if (line.strip()):
-            break;
-            
+            break;            
     words = line.split(";")
-    for i, word in enumerate(words):
-        lword = word.lower()
-        if cols['status'] == -1:
-            if (STATUS1 in lword) or (STATUS2 in lword):
-                print("found status in column  " + str(i))
-                cols['status'] = i
+    
+    # parse the column names to find the indices for desired columns
+    if (find_col_indices(words, cols, COLUMN_DEFS) == False):
+        return
+    
+    # count the filing
+    result, total = count_filings(inf, cols, KEY_NAME, KEY_VALUE)
 
-        if cols['state'] == -1:
-            if (STATE1 in lword) or (STATE2 in lword) or (STATE3 in lword):
-                print("found state in column  " + str(i))
-                cols['state'] = i
-                    
-        if cols['occ_code'] == -1:
-            if (CODE1 in lword or CODE2 in lword) and (CODE3 in lword):
-                print("found code in column  " + str(i))
-                cols['occ_code'] = i
-            
-        if cols['occ_name'] == -1:
-            if (CODE1 in lword or CODE2 in lword) and (NAME1 in lword):
-                print("found name in column  " + str(i))
-                cols['occ_name'] = i
+    # from here it is not that much data driven because the output format
+    # is very specific. Can be made data driven once more requirements come in
+    
+    for i, c in enumerate(OUT_STRINGS):
+        try:
+            fh = open(sys.argv[i+2], "w")
+            lc = sort_by_value_and_key(result[c])
+            fh.write(OUT_STRINGS[c])
+            for i in range(min(OUT_COUNT, len(lc))):
+                fh.write("{};{};{:.1%}\n".format(lc[i][0], lc[i][1], lc[i][1]/total))
+        except IOError as err:
+            print("File error:{}".format(err))
+        finally:
+            fh.close()
 
-    for t, v in cols.items():
-        if (v == -1):
-            print("could not find column for "+ t)
-            return
+def main():
 
-    states, occs, occnames, total = count_applications(inf, cols)
-    print(states)
-    #print(occnames)
-    #print(occs)
-    
-    statelist = [(key, val) for key, val in states.items()]
-    statelist.sort(key = itemgetter(0))
-    statelist.sort(key=itemgetter(1), reverse=True)
-    
-    occlist = [(key, val) for key, val in occs.items()]
-    occlist.sort(key = itemgetter(0))
-    occlist.sort(key=itemgetter(1), reverse=True)
-    
-    print(len(statelist))
-    print("TOP_STATES;NUMBER_CERTIFIED_APPLICATIONS;PERCENTAGE")
-    for i in range(min(10, len(statelist))):
-        print("{};{};{:.1%}".format(statelist[i][0], statelist[i][1], statelist[i][1]/total))
-    
-    print("TOP_OCCUPATIONS;NUMBER_CERTIFIED_APPLICATIONS;PERCENTAGE")
-    for i in range(min(10, len(occlist))):
-        print("{};{};{:.1%}".format(occnames[occlist[i][0]], occlist[i][1], occlist[i][1]/total))
-    
-    
-    """
-    
-    s = f.readline()
-    i = int(s.strip())
-except OSError as err:
-    print("OS error: {0}".format(err))
-except ValueError:
-    print("Could not convert data to an integer.")
-except:
-    print("Unexpected error:", sys.exc_info()[0])
-    raise
-    """
+    get_top_filings()
     
 
 if __name__ == '__main__':
