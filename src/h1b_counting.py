@@ -204,6 +204,7 @@ def get_top_filings():
     result, total = count_filings(inf, cols, KEY_NAME, KEY_VALUE)
     # write out the result
     output_top_filings(result, total, OUT_STRINGS, OUT_COUNT)
+    output_top_filings(result, total, OUT_STRINGS, OUT_COUNT)
 
 
 def main():
