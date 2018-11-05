@@ -5,7 +5,7 @@
 
 # Problem
 
-This module takes a csv input text file which provides information about H1 visa filing for a given year. The first line is the header line and contains the names of the columns. Each subsequent line provides information about one specific visa application. The data is available from the US Department of Labor and its [Office of Foreign Labor Certification Performance Data](https://www.foreignlaborcert.doleta.gov/performancedata.cfm#dis). However the data is required to be converted to csv format (with ; separator).
+This module takes as input a csv text file which provides information about H1 visa filing for a given year. The first line is the header line and contains the names of the columns. Each subsequent line provides information about one specific visa application. The data is available from the US Department of Labor and its [Office of Foreign Labor Certification Performance Data](https://www.foreignlaborcert.doleta.gov/performancedata.cfm#dis). However the data is required to be converted to csv format (with ; separator).
 
 The first requirement is to process a file and provide reports on the top 10 Occupations and top 10 States for certified visa applications.
 * The ; separated column names for the same information vary from year to year
@@ -19,7 +19,7 @@ The output format is required to be as follows:
 * A very specific format of the output header line is given. The code documents the format 
 * for the top 10 occupations, the output contains the occupation name; number of certified applications for the occupation; and percentage of applications for the occupation as a percent of total number of certified applications
 * for the top 10 states, similar information is required except grouping is by state instead of by occupation
-* The output must be in descending order by count; and in case of ties in alphabetical order by occupation name or state name
+* The output must be in descending order by count; and in case of ties, in alphabetical order by occupation name or state name
 ### The Unspecified Requirement
 
 It is pretty reasonable to assume that the initial request will be followed by new requests for slightly varying information. Some examples may be
