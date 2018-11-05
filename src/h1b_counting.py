@@ -25,8 +25,9 @@ can be modified if needed as follow:
 """
 
 STATUS = ["CASE_STATUS", "STATUS", "APPROVAL_STATUS"]
-STATE = ["LCA_CASE_WORKLOC1_STATE", "WORKSITE_STATE", "STATE_1"]
-SOC_NAME = ["LCA_CASE_SOC_NAME", "SOC_NAME", "OCCUPATION_TITLE"]
+STATE = ["LCA_CASE_WORKLOC1_STATE", "STATE_1", "WORKSITE_STATE",
+           "WORK_LOCATION_STATE1"]
+SOC_NAME = ["LCA_CASE_SOC_NAME", "SOC_NAME", "OCCUPATIONAL_TITLE"]
 
 COLUMN_DEFS = {"status": STATUS, "state": STATE, "soc_name": SOC_NAME}
 
@@ -113,7 +114,7 @@ def find_col_indices(inf, cols, column_defs):
     
     # find the index for each column
     for i, word in enumerate(words):
-        word = word.upper()
+        word = word.upper().strip().replace("\"", "").replace("\'", "").upper()
         for key in cols:
             if (cols[key] == -1):
                 if (match_col_name(word, column_defs[key]) is True):

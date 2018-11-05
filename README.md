@@ -5,48 +5,46 @@
 
 # Problem
 
-The first requirement is to take an input file and provide reports on the top 10 Occupations and top 10 States for certified visa applicaations. The input file is formatted as follows
+The first requirement is to take an input file and provide reports on the top 10 Occupations and top 10 States for certified visa applications. The input file is formatted as follows
 * The headers line contains a ; separated list of column names. The column names for the same information vary from year to year
 * This is follows by a line for each visa application containing the data as indicated by the column name
 
-## The Unspecified Requirement
+### The Unspecified Requirement
 
-It is pretty reasonable to assume that the initial request will be followed by more requests for information. Some examples may be
+It is pretty reasonable to assume that the initial request will be followed by new requests for slightly varying information. Some examples may be
 * The top 20 states
 * output all the occupations instead of the top 10
 * Similar summary as the initial requirement but for applications that were not certified
 * the top 10 employer names requesting visas
 
-While all of the requirements cannot be anticipated, it is important that the design approach be flexible without programming explicitly for the unknown requirements
+While all of the requirements cannot be anticipated, it is important that the design approach be flexible without programming up-front for the unknown requirements
 
 
 # Approach
 
 The basic idea in the design is to use definitions to drive the program.
-* As an example, the word application "status" for column/field appears only in constant definitions and not in the code instructions. Similarly for all of the different strings that indicate that a column contains application status such as "CASE_STATUS", "STATUS", "APPROVAL_STATUS".
+* As an example, the word application "status" for column/field appears only in constant definitions and not in the code instructions. Similarly the various strings that indicate application status (such as "CASE_STATUS", "STATUS", "APPROVAL_STATUS") are in a lsit in constant definitions.
 * What that means is that if in 2019, the column is known by a different name, then only the constant definition needs to be extended with the new string and nothing else has to change
 * Similarly if there is a need to tally up the applications with the status "Denied", then only the definition of the constant KEY_VALUE has to change
 
-At the same time, there was no code added for requirements not yet given. For example, if there is requirement to provide the same data for all applications regardless of status, then some minor modification do need to be made to the code. For example, a new constant MATCH_TYPE may be added with values of MATCH, DOES_NOT_MATCH or NO_MATCH_NEEDED and some minor corresponding code modification has to made
+At the same time, there was no code specifically added for future requirements. For example, if there is new requirement to provide the same data for all applications regardless of status, then some minor modification do need to be made to the code. For example, a new constant MATCH_TYPE may be added with values of MATCH, DOES_NOT_MATCH or NO_MATCH_NEEDED and some minor corresponding code modification has to made
 
 The following are the important constants used to drive the code
 
-* COLUMN_DEFS is a dictionary that contains all the columns used in the computation. The key is a common name such as "state" or "status" or "soc_name" and the values correspond to a list of strings by which each of these columns may actually be known by in different years.
-* KEY_NAME and KEY_VALUE are the column used for matching (currently status) and the value for that column to match on
-* The OUT_STRINGS is the dictionary - one key-value pair for every file to be output and should be in the same order in which the output files are specified in the command line.
+* COLUMN_DEFS is a dictionary that contains all the columns used in the computation. The key is a common column name such as "state" or "status" or "soc_name" and the values correspond to a list of strings which each of these columns may actually be known by in different years.
+* KEY_NAME and KEY_VALUE are the column used for matching (currently "status") and the value for that column to match on (currently "CERTIFIED")
+* The OUT_STRINGS is the dictionary - one key-value pair for every file to be output and should follow the order of the output files in the command line.
 * The OUT_COUNT is how many maximum values in descending order should be written out (10 for the first phase)
 
 ## Brief Overview of the code
 
 * The code first processes the header line in the input file. It uses the COLUMN_DEFS to find the index of the columns of interest - only exact matches for any of the strings by which a column is known are supported.
-* If all the columns are not found in the header line, the code prints an error to the standard output and returns without further processing
-* It then goes through the input file line by line - For processing optimization, it processes line only if the match rule passes and then extracts the values in the columns to be added up
-* A dictionary where the values are themselves dictionaries is used to store the results. The key at the first level is the column name. The second level dictionary contains e.g. the state names encountered and the value for each state
-* The second level dictionary data is converted to a list of tuples for ease of sorting. The sorting is done in alpbabetical order first (Ascending) and then by count (descending)
-*     Since python sort is stable sort, it there are two states or occupations with the same count, the order will remain alphabetical order
-* The data is then written to the output files in the format specified
-
-***The objective here is to see if you can implement the solution using basic data structure building blocks and software engineering best practices (by writing clean, modular, and well-tested code).*** 
+* If any of the columns are not found in the header line, the code prints an error to the standard output and returns without further processing
+* It then goes through the input file line by line - for processing optimization, it processes a line only if the match rule passes and then extracts the values in the columns of interest
+* A dictionary where the values are themselves dictionaries is used to store the results. The key at the first level is the column name. The second level dictionary contains e.g. the state names encountered and the value is the count of applications for that state
+* The second level dictionary data is converted to a list of tuples for ease of sorting. The sorting is done in alpbabetical order first (ascending) and then by count (descending)
+* Since python sort is stable sort, if there are two states or occupations with the same count, the order will remain alphabetical order
+* The data is then written to the output files in the format specified. The formatting code chosen provided the appropriate rounding for percentage
 
 # Running 
 
