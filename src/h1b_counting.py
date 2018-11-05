@@ -5,6 +5,7 @@ Created on Thu Nov  1 16:33:26 2018
 @author: Somesh Gupta
 """
 import sys
+import time
 from operator import itemgetter
 
 """
@@ -157,8 +158,10 @@ def output_top_filings(result, total, out_strings, out_count):
         except IOError as err:
             print("File error:{}".format(err))
         finally:
+            fh.flush()
+            fh.flush()
             fh.close()
-
+    time.sleep(2)
 
 def get_top_filings():
     """
