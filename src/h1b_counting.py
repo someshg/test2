@@ -5,6 +5,7 @@ Created on Thu Nov  1 16:33:26 2018
 @author: Somesh Gupta
 """
 import sys
+import os
 import time
 from operator import itemgetter
 
@@ -160,6 +161,7 @@ def output_top_filings(result, total, out_strings, out_count):
         finally:
             fh.flush()
             fh.flush()
+            os.fsync(fh.fileno())
             fh.close()
     time.sleep(2)
 
