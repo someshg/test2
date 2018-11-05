@@ -41,30 +41,30 @@ OUT_COUNT = 10
 
 
 def extract_word(words, index):
-    # extract the word from list at the specified index.
-    # clean it as needed
+    """return the word at the specified index after normalizing it"""
     return words[index].strip().replace("\"", "").replace("\'", "").upper()
 
 
 def count_filings(inf, cols, match_name, match_val):
-    # for every line in inf file, if the value in match_name column
-    # equals the match value, then the columns specified by
-    # the col struct are used to do counting as follows:
-    #      extract the value in the column - it is an instance of values
-    #      for the column. Count the number of each instance in the file
-    #      and store them in the dictionary result. Result is a dictionary
-    #      of dictionary. At outer level, the key is column name, at inner
-    #      level, the key is instance of column value and value is number of
-    #      occurances
+    """
+    for every line in inf file, if the value in match_name column
+    equals the match value, then the columns specified by
+    the col struct are used to do counting as follows:
+        extract the value in the column - it is an instance of values for the
+        column. Count the number of each instance in the file and store them
+        in the dictionary result. Result is a dictionary of dictionary. At
+        outer level, the key is column name, at inner level, the key is
+        instance of column value and value is number of
+        occurances
+    """
 
     result = {}
     col_name = []
     col_index = []
 
     # prepare two parallel lists - column name and column index
-    # to avoid dictionary lookup for column index in per file line loop
+    # so as to avoid dictionary lookup for column index in main loop
     for c in cols:
-        print(c)
         if c != match_name:
             col_name.append(c)
             col_index.append(cols[c])
@@ -72,8 +72,8 @@ def count_filings(inf, cols, match_name, match_val):
         else:
             match_col = cols[c]
 
+    # main counting loop
     total = 0
-
     for line in inf:
         words = line.strip().split(';')
         if match_val == extract_word(words, match_col):
@@ -86,56 +86,22 @@ def count_filings(inf, cols, match_name, match_val):
 
 
 def match_col_name(word, pat):
-    # checks if any of alternative names for a column has a match
+    """ checks if any of alternative names for a column has a match """
     for s in pat:
         if s == word:
             return True
     return False
 
 
-def find_col_indices(words, cols, column_defs):
-    # searches for column names in the list of words - common name is
-    # in dict cols, the acceptable strings for a column name are in
-    # column_defs. Returns the indices at which the names occur in cols
-    for i, word in enumerate(words):
-        word = word.upper()
-        for key in cols:
-            if (cols[key] == -1):
-                if (match_col_name(word, column_defs[key]) is True):
-                    cols[key] = i
-                    break
-    for t, v in cols.items():
-        if (v == -1):
-            print("could not find column for " + t)
-            return False
-    return True
-
-
-def sort_by_value_and_key(indict):
-    # first sort by value in descending order and then by key in
-    # ascending order. Returns a list of tuples of key-values in sorted order
-    l = [(key, val) for key, val in indict.items()]
-    l.sort(key=itemgetter(0))
-    l.sort(key=itemgetter(1), reverse=True)
-    return l
-
-
-def get_top_filings():
-    nargs = len(COLUMN_DEFS) + 1
-    if len(sys.argv) != num_out_files+2:
-        print("h1bcounting.py: requires exactly {} arguments".format(nargs))
-        print("usage is h1bcounting.py <input_file> <outfile> ...")
-        return
-    try:
-        i = 1
-        inf = open(sys.argv[i], "r")
-    except IOError as err:
-        print("File open error: {}".format(err))
-        return
-
-    # create a dictionary with the required column names as keys
-    # initialized to a value of 1
-    cols = {}
+def find_col_indices(inf, cols, column_defs):
+    """
+    searches for column names in the header line in data file
+    - Updates the dictionary cols with the index at which the column occurs
+    - return True if all the columns were found and False otherwise after
+      printing error
+    """
+    
+    # initialize the cols dictionary
     for c in COLUMN_DEFS:
         cols[c] = -1
 
@@ -144,33 +110,99 @@ def get_top_filings():
         if (line.strip()):
             break
     words = line.split(";")
+    
+    # find the index for each column
+    for i, word in enumerate(words):
+        word = word.upper()
+        for key in cols:
+            if (cols[key] == -1):
+                if (match_col_name(word, column_defs[key]) is True):
+                    cols[key] = i
+                    break
+                
+    # check if indices for all the columns were found
+    for t, v in cols.items():
+        if (v == -1):
+            print("could not find column for " + t)
+            return False
+    return True
 
-    # parse the column names to find the indices for desired columns
-    if (find_col_indices(words, cols, COLUMN_DEFS) is False):
-        return
+def sort_by_value_and_key(indict):
+    """
+    by value in descending order and then by key in ascending order 
+    returns a new list of tuples instead of dictionary
+    """
+    l = [(key, val) for key, val in indict.items()]
+    l.sort(key=itemgetter(0))
+    l.sort(key=itemgetter(1), reverse=True)
+    return l
 
-    # count the filing
-    result, total = count_filings(inf, cols, KEY_NAME, KEY_VALUE)
-
-    # from here it is not that much data driven because the output format
-    # is very specific. Can be made data driven once more requirements come in
-
-    for i, c in enumerate(OUT_STRINGS):
+def output_top_filings(result, total, out_strings, out_count):
+    """
+    Provides the writing of results to the output file corresponding
+    to the current requirements
+    """
+        
+    for i, c in enumerate(out_strings):
         try:
             fh = open(sys.argv[i+2], "w")
             lc = sort_by_value_and_key(result[c])
-            fh.write(OUT_STRINGS[c])
-            for i in range(min(OUT_COUNT, len(lc))):
+            fh.write(out_strings[c])
+            for i in range(min(out_count, len(lc))):
                 fh.write("{};{};{:.1%}\n".format(lc[i][0], lc[i][1],
                                                  lc[i][1]/total))
         except IOError as err:
             print("File error:{}".format(err))
         finally:
             fh.close()
+    
+def get_top_filings():
+    """
+    Supports the first requirement from the editor of returning a list
+    of top filings by state and by name associated with occupation code
+    For the inevitable new request - 
+        some requests (such as can you give me top 20; or filigins that were
+        not certified; or the column name has changes) can be met by changing
+        the constants at the top of file
+        other requests such as getting the bottom states will require more
+        work of adding keyword for type of request and a list of states
+    
+    The attempt is that the changes will be minimal as additional requests come
+    in and should be met by adding for constant definitions to keep abstracting
+    it further
+    """
+    
+    # The number of columns in COLUMN_DEFS is one more than number of outfiles
+    nargs = len(COLUMN_DEFS) + 1
+    if len(sys.argv) != nargs:
+        print("h1bcounting.py: requires exactly {} arguments".format(nargs))
+        print("usage is h1bcounting.py <input_file> <outfile> ...")
+        return
+    #open input data file
+    try:
+        i = 1
+        inf = open(sys.argv[i], "r")
+    except IOError as err:
+        print("File open error: {}".format(err))
+        return
+    
+    # parse the column names to find the indices for desired columns
+    cols = {}
+    if (find_col_indices(inf, cols, COLUMN_DEFS) is False):
+        return
 
+    # count the filing
+    result, total = count_filings(inf, cols, KEY_NAME, KEY_VALUE)
+    #write out the result
+    output_top_filings(result, total, OUT_STRINGS, OUT_COUNT)
 
 def main():
-
+    """
+    only reason to have a one liner main function is to be a little
+    future looking. If additional requirements are added that require
+    a different processing function in addition to the current one, this
+    is the place to demultiplex
+    """
     get_top_filings()
 
 
