@@ -26,7 +26,7 @@ can be modified if needed as follow:
 
 STATUS = ["CASE_STATUS", "STATUS", "APPROVAL_STATUS"]
 STATE = ["LCA_CASE_WORKLOC1_STATE", "STATE_1", "WORKSITE_STATE",
-           "WORK_LOCATION_STATE1"]
+         "WORK_LOCATION_STATE1"]
 SOC_NAME = ["LCA_CASE_SOC_NAME", "SOC_NAME", "OCCUPATIONAL_TITLE"]
 
 COLUMN_DEFS = {"status": STATUS, "state": STATE, "soc_name": SOC_NAME}
@@ -101,7 +101,7 @@ def find_col_indices(inf, cols, column_defs):
     - return True if all the columns were found and False otherwise after
       printing error
     """
-    
+
     # initialize the cols dictionary
     for c in COLUMN_DEFS:
         cols[c] = -1
@@ -111,7 +111,7 @@ def find_col_indices(inf, cols, column_defs):
         if (line.strip()):
             break
     words = line.split(";")
-    
+
     # find the index for each column
     for i, word in enumerate(words):
         word = word.upper().strip().replace("\"", "").replace("\'", "").upper()
@@ -120,7 +120,7 @@ def find_col_indices(inf, cols, column_defs):
                 if (match_col_name(word, column_defs[key]) is True):
                     cols[key] = i
                     break
-                
+
     # check if indices for all the columns were found
     for t, v in cols.items():
         if (v == -1):
@@ -128,9 +128,10 @@ def find_col_indices(inf, cols, column_defs):
             return False
     return True
 
+
 def sort_by_value_and_key(indict):
     """
-    by value in descending order and then by key in ascending order 
+    by value in descending order and then by key in ascending order
     returns a new list of tuples instead of dictionary
     """
     l = [(key, val) for key, val in indict.items()]
@@ -138,12 +139,13 @@ def sort_by_value_and_key(indict):
     l.sort(key=itemgetter(1), reverse=True)
     return l
 
+
 def output_top_filings(result, total, out_strings, out_count):
     """
     Provides the writing of results to the output file corresponding
     to the current requirements
     """
-        
+
     for i, c in enumerate(out_strings):
         try:
             fh = open(sys.argv[i+2], "w")
@@ -156,37 +158,38 @@ def output_top_filings(result, total, out_strings, out_count):
             print("File error:{}".format(err))
         finally:
             fh.close()
-    
+
+
 def get_top_filings():
     """
     Supports the first requirement from the editor of returning a list
     of top filings by state and by name associated with occupation code
-    For the inevitable new request - 
+    For the inevitable new request -
         some requests (such as can you give me top 20; or filigins that were
         not certified; or the column name has changes) can be met by changing
         the constants at the top of file
         other requests such as getting the bottom states will require more
         work of adding keyword for type of request and a list of states
-    
+
     The attempt is that the changes will be minimal as additional requests come
     in and should be met by adding for constant definitions to keep abstracting
     it further
     """
-    
+
     # The number of columns in COLUMN_DEFS is one more than number of outfiles
     nargs = len(COLUMN_DEFS) + 1
     if len(sys.argv) != nargs:
         print("h1bcounting.py: requires exactly {} arguments".format(nargs))
         print("usage is h1bcounting.py <input_file> <outfile> ...")
         return
-    #open input data file
+    # open input data file
     try:
         i = 1
         inf = open(sys.argv[i], "r")
     except IOError as err:
         print("File open error: {}".format(err))
         return
-    
+
     # parse the column names to find the indices for desired columns
     cols = {}
     if (find_col_indices(inf, cols, COLUMN_DEFS) is False):
@@ -194,8 +197,9 @@ def get_top_filings():
 
     # count the filing
     result, total = count_filings(inf, cols, KEY_NAME, KEY_VALUE)
-    #write out the result
+    # write out the result
     output_top_filings(result, total, OUT_STRINGS, OUT_COUNT)
+
 
 def main():
     """
